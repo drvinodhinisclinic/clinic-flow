@@ -2,7 +2,7 @@
 import { Patient, Appointment, PatientFormData, AppointmentFormData } from '@/types';
 
 // Base API URL - configure this based on your backend
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'https://8261db9691da.ngrok-free.app/api';
 
 // Generic fetch wrapper with error handling
 async function fetchApi<T>(
