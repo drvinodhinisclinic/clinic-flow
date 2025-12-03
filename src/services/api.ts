@@ -2,33 +2,54 @@
 import { Patient, Appointment, PatientFormData, AppointmentFormData } from '@/types';
 
 // Base API URL - configure this based on your backend
-const API_BASE_URL = 'http://localhost:3000/api/';
+const API_BASE_URL = 'http://localhost:3000/api';
 
 // Generic fetch wrapper with error handling
 async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  // Ensure endpoint starts with /
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${API_BASE_URL}${normalizedEndpoint}`;
+  
+  console.log(`[API] Fetching: ${url}`);
   
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
   };
 
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
-  });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...defaultHeaders,
+        ...options.headers,
+      },
+    });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
+    console.log(`[API] Response status: ${response.status} for ${url}`);
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error(`[API] Error response body:`, errorBody);
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorJson = JSON.parse(errorBody);
+        errorMessage = errorJson.message || errorMessage;
+      } catch {
+        // Response wasn't JSON
+      }
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    console.log(`[API] Success:`, data);
+    return data;
+  } catch (error) {
+    console.error(`[API] Fetch error for ${url}:`, error);
+    throw error;
   }
-
-  return response.json();
 }
 
 // ============ Patient API Services ============
