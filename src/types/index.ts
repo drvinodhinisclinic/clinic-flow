@@ -45,10 +45,18 @@ export interface PatientFormData {
 
 export interface AppointmentFormData {
   patient_id: number;
+  doctor_id?: number;
   appointment_date: string;
   appointment_time: string;
   reason: string;
   status?: string;
+}
+
+// Doctor type definition
+export interface Doctor {
+  id: number;
+  name: string;
+  specialization?: string;
 }
 
 // API Response types
