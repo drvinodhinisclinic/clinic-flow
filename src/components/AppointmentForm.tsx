@@ -153,7 +153,14 @@ export function AppointmentForm({
   };
 
   const handleFormSubmit = async (data: AppointmentFormData) => {
-    await onSubmit(data);
+    // Format time with seconds (HH:mm:ss) as expected by API
+    const formattedData = {
+      ...data,
+      appointment_time: data.appointment_time.includes(':') && data.appointment_time.split(':').length === 2 
+        ? `${data.appointment_time}:00` 
+        : data.appointment_time,
+    };
+    await onSubmit(formattedData);
     reset();
   };
 
