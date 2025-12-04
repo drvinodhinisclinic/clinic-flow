@@ -2,7 +2,8 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Appointment, AppointmentFormData, Patient } from '@/types';
+import { useEffect, useState } from 'react';
+import { Appointment, AppointmentFormData, Patient, Doctor } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,11 +20,15 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
+import { getAllDoctors } from '@/services/api';
+import { Loader2 } from 'lucide-react';
 
 // Validation schema for appointment form
 const appointmentSchema = z.object({
   patient_id: z.number().min(1, 'Patient is required'),
+  doctor_id: z.number().min(1, 'Doctor is required'),
   appointment_date: z.string().min(1, 'Date is required'),
   appointment_time: z.string().min(1, 'Time is required'),
   reason: z.string().min(3, 'Reason must be at least 3 characters').max(500),
@@ -39,8 +44,8 @@ interface AppointmentFormProps {
   isLoading?: boolean;
 }
 
-// Mock doctors list - in production, this would come from an API
-const doctors = [
+// Mock doctors for fallback
+const mockDoctors: Doctor[] = [
   { id: 1, name: 'Dr. Sarah Johnson' },
   { id: 2, name: 'Dr. Michael Chen' },
   { id: 3, name: 'Dr. Emily Williams' },
@@ -49,11 +54,20 @@ const doctors = [
 
 const statuses = ['Scheduled', 'Completed', 'Cancelled', 'No Show'];
 
-const timeSlots = [
-  '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-  '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
-  '16:00', '16:30', '17:00', '17:30',
-];
+// Generate 5-minute interval time slots from 9:00 AM to 6:00 PM
+const generateTimeSlots = (): string[] => {
+  const slots: string[] = [];
+  for (let hour = 9; hour <= 18; hour++) {
+    for (let minute = 0; minute < 60; minute += 5) {
+      if (hour === 18 && minute > 0) break; // Stop at 18:00
+      const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      slots.push(timeStr);
+    }
+  }
+  return slots;
+};
+
+const timeSlots = generateTimeSlots();
 
 export function AppointmentForm({
   open,
@@ -63,6 +77,9 @@ export function AppointmentForm({
   patient,
   isLoading,
 }: AppointmentFormProps) {
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -72,22 +89,60 @@ export function AppointmentForm({
     formState: { errors },
   } = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
-    defaultValues: appointment
-      ? {
+    defaultValues: {
+      patient_id: patient?.id || 0,
+      doctor_id: undefined,
+      appointment_date: '',
+      appointment_time: '',
+      reason: '',
+      status: 'Scheduled',
+    },
+  });
+
+  // Fetch doctors when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchDoctors();
+    }
+  }, [open]);
+
+  // Reset form when appointment or patient changes
+  useEffect(() => {
+    if (open) {
+      if (appointment) {
+        reset({
           patient_id: appointment.patient_id,
+          doctor_id: undefined,
           appointment_date: appointment.appointment_date,
           appointment_time: appointment.appointment_time,
           reason: appointment.reason,
           status: appointment.status || 'Scheduled',
-        }
-      : {
+        });
+      } else {
+        reset({
           patient_id: patient?.id || 0,
+          doctor_id: undefined,
           appointment_date: '',
           appointment_time: '',
           reason: '',
           status: 'Scheduled',
-        },
-  });
+        });
+      }
+    }
+  }, [open, appointment, patient, reset]);
+
+  const fetchDoctors = async () => {
+    setLoadingDoctors(true);
+    try {
+      const data = await getAllDoctors();
+      setDoctors(data);
+    } catch (error) {
+      console.log('Using mock doctors - API not available');
+      setDoctors(mockDoctors);
+    } finally {
+      setLoadingDoctors(false);
+    }
+  };
 
   const handleFormSubmit = async (data: AppointmentFormData) => {
     await onSubmit(data);
@@ -109,6 +164,9 @@ export function AppointmentForm({
           <DialogTitle className="text-xl font-semibold">
             {appointment ? 'Edit Appointment' : 'Book Appointment'}
           </DialogTitle>
+          <DialogDescription>
+            {appointment ? 'Update the appointment details below.' : 'Fill in the details to book a new appointment.'}
+          </DialogDescription>
         </DialogHeader>
 
         {/* Show patient info if booking for specific patient */}
@@ -124,18 +182,31 @@ export function AppointmentForm({
           {/* Doctor Selection */}
           <div className="space-y-2">
             <Label>Doctor *</Label>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Select doctor" />
-              </SelectTrigger>
-              <SelectContent>
-                {doctors.map((doctor) => (
-                  <SelectItem key={doctor.id} value={doctor.id.toString()}>
-                    {doctor.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {loadingDoctors ? (
+              <div className="flex items-center gap-2 h-10 px-3 border rounded-md">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Loading doctors...</span>
+              </div>
+            ) : (
+              <Select
+                value={watch('doctor_id')?.toString() || ''}
+                onValueChange={(value) => setValue('doctor_id', parseInt(value))}
+              >
+                <SelectTrigger className={errors.doctor_id ? 'border-destructive' : ''}>
+                  <SelectValue placeholder="Select doctor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {doctors.map((doctor) => (
+                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                      {doctor.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {errors.doctor_id && (
+              <p className="text-xs text-destructive">{errors.doctor_id.message}</p>
+            )}
           </div>
 
           {/* Date Selection */}
@@ -167,7 +238,7 @@ export function AppointmentForm({
               >
                 <SelectValue placeholder="Select time" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-60">
                 {timeSlots.map((time) => (
                   <SelectItem key={time} value={time}>
                     {time}
@@ -224,7 +295,7 @@ export function AppointmentForm({
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || loadingDoctors}>
               {isLoading
                 ? 'Saving...'
                 : appointment

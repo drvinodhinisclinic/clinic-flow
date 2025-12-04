@@ -1,5 +1,5 @@
 // API service for patient and appointment management
-import { Patient, Appointment, PatientFormData, AppointmentFormData } from '@/types';
+import { Patient, Appointment, PatientFormData, AppointmentFormData, Doctor } from '@/types';
 
 // Base API URL - configure this based on your backend
 const API_BASE_URL = 'http://localhost:3000/api';
@@ -90,6 +90,13 @@ export async function deletePatient(id: number): Promise<void> {
   return fetchApi<void>(`/patients/${id}`, {
     method: 'DELETE',
   });
+}
+
+// ============ Doctor API Services ============
+
+// Get all doctors
+export async function getAllDoctors(): Promise<Doctor[]> {
+  return fetchApi<Doctor[]>('/doctors');
 }
 
 // ============ Appointment API Services ============

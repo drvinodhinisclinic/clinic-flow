@@ -2,6 +2,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useEffect } from 'react';
 import { Patient, PatientFormData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 
 // Validation schema for patient form
@@ -47,6 +49,17 @@ interface PatientFormProps {
 const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const genders = ['Male', 'Female', 'Other'];
 
+// Helper to format date for input field
+const formatDateForInput = (dateStr: string | undefined | null): string => {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr);
+    return date.toISOString().split('T')[0];
+  } catch {
+    return dateStr;
+  }
+};
+
 export function PatientForm({
   open,
   onClose,
@@ -63,7 +76,7 @@ export function PatientForm({
     formState: { errors },
   } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
-    defaultValues: patient || {
+    defaultValues: {
       name: '',
       age: '',
       gender: '',
@@ -77,6 +90,41 @@ export function PatientForm({
       EDD: null,
     },
   });
+
+  // Reset form with patient data when dialog opens or patient changes
+  useEffect(() => {
+    if (open) {
+      if (patient) {
+        reset({
+          name: patient.name || '',
+          age: patient.age || '',
+          gender: patient.gender || '',
+          dateofbirth: formatDateForInput(patient.dateofbirth),
+          BloodGroup: patient.BloodGroup || '',
+          mobile: patient.mobile || '',
+          address: patient.address || '',
+          allergies: patient.allergies || '',
+          medical_history: patient.medical_history || '',
+          isANC: patient.isANC || 'No',
+          EDD: formatDateForInput(patient.EDD),
+        });
+      } else {
+        reset({
+          name: '',
+          age: '',
+          gender: '',
+          dateofbirth: '',
+          BloodGroup: '',
+          mobile: '',
+          address: '',
+          allergies: '',
+          medical_history: '',
+          isANC: 'No',
+          EDD: null,
+        });
+      }
+    }
+  }, [open, patient, reset]);
 
   const isANC = watch('isANC');
 
@@ -97,6 +145,9 @@ export function PatientForm({
           <DialogTitle className="text-xl font-semibold">
             {patient ? 'Edit Patient' : 'Add New Patient'}
           </DialogTitle>
+          <DialogDescription>
+            {patient ? 'Update the patient details below.' : 'Fill in the details to add a new patient.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6 py-4">
