@@ -28,7 +28,7 @@ import { Loader2 } from 'lucide-react';
 // Validation schema for appointment form
 const appointmentSchema = z.object({
   patient_id: z.number().min(1, 'Patient is required'),
-  doctor_id: z.number().min(1, 'Doctor is required'),
+  doctor_id: z.number({ required_error: 'Doctor is required', invalid_type_error: 'Doctor is required' }).min(1, 'Doctor is required'),
   appointment_date: z.string().min(1, 'Date is required'),
   appointment_time: z.string().min(1, 'Time is required'),
   reason: z.string().min(3, 'Reason must be at least 3 characters').max(500),
@@ -118,9 +118,12 @@ export function AppointmentForm({
           reason: appointment.reason,
           status: appointment.status || 'Scheduled',
         });
-      } else {
+      } else if (patient) {
+        // Handle both 'id' and 'patient_id' from API response
+        const patientId = patient.id || (patient as any).patient_id || 0;
+        console.log('[AppointmentForm] Setting patient_id:', patientId);
         reset({
-          patient_id: patient?.id || 0,
+          patient_id: patientId,
           doctor_id: undefined,
           appointment_date: '',
           appointment_time: '',
@@ -153,6 +156,7 @@ export function AppointmentForm({
   };
 
   const handleFormSubmit = async (data: AppointmentFormData) => {
+    console.log('[AppointmentForm] Submitting data:', data);
     // Format time with seconds (HH:mm:ss) as expected by API
     const formattedData = {
       ...data,
@@ -160,8 +164,13 @@ export function AppointmentForm({
         ? `${data.appointment_time}:00` 
         : data.appointment_time,
     };
+    console.log('[AppointmentForm] Formatted data:', formattedData);
     await onSubmit(formattedData);
     reset();
+  };
+
+  const onFormError = (formErrors: any) => {
+    console.log('[AppointmentForm] Validation errors:', formErrors);
   };
 
   const handleClose = () => {
@@ -193,7 +202,7 @@ export function AppointmentForm({
           </div>
         )}
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(handleFormSubmit, onFormError)} className="space-y-4">
           {/* Doctor Selection */}
           <div className="space-y-2">
             <Label>Doctor *</Label>
@@ -205,7 +214,7 @@ export function AppointmentForm({
             ) : (
               <Select
                 value={watch('doctor_id')?.toString() || ''}
-                onValueChange={(value) => setValue('doctor_id', parseInt(value))}
+                onValueChange={(value) => setValue('doctor_id', parseInt(value), { shouldValidate: true })}
               >
                 <SelectTrigger className={errors.doctor_id ? 'border-destructive' : ''}>
                   <SelectValue placeholder="Select doctor" />

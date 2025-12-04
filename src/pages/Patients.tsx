@@ -130,7 +130,12 @@ export default function Patients() {
     setIsLoading(true);
     try {
       const data = await getAllPatients();
-      setPatients(data);
+      // Map patient_id to id for consistency
+      const mappedData = data.map((p: any) => ({
+        ...p,
+        id: p.id || p.patient_id,
+      }));
+      setPatients(mappedData);
     } catch (error) {
       // Use mock data if API fails (for demo purposes)
       console.log('Using mock data - API not available');
