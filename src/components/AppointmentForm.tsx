@@ -134,8 +134,16 @@ export function AppointmentForm({
   const fetchDoctors = async () => {
     setLoadingDoctors(true);
     try {
-      const data = await getAllDoctors();
-      setDoctors(data);
+      const response = await getAllDoctors();
+      // API returns {success: true, doctors: [...]} so extract the array
+      const doctorsArray = Array.isArray(response) ? response : (response as any).doctors || [];
+      // Ensure each doctor has an id
+      const doctorsWithIds = doctorsArray.map((doc: any, index: number) => ({
+        id: doc.id || index + 1,
+        name: doc.name,
+        specialization: doc.specialization,
+      }));
+      setDoctors(doctorsWithIds);
     } catch (error) {
       console.log('Using mock doctors - API not available');
       setDoctors(mockDoctors);
