@@ -138,9 +138,16 @@ export async function updateAppointment(
   id: number,
   data: AppointmentFormData
 ): Promise<Appointment> {
+  // Only send the fields expected by the API
+  const updatePayload = {
+    appointment_date: data.appointment_date,
+    appointment_time: data.appointment_time,
+    reason: data.reason,
+    status: data.status,
+  };
   return fetchApi<Appointment>(`/appointments/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(data),
+    body: JSON.stringify(updatePayload),
   });
 }
 

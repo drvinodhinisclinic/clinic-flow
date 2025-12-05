@@ -54,20 +54,10 @@ const mockDoctors: Doctor[] = [
 
 const statuses = ['Pending', 'Confirmed', 'Cancelled', 'Completed'];
 
-// Generate 5-minute interval time slots from 9:00 AM to 6:00 PM
-const generateTimeSlots = (): string[] => {
-  const slots: string[] = [];
-  for (let hour = 9; hour <= 18; hour++) {
-    for (let minute = 0; minute < 60; minute += 5) {
-      if (hour === 18 && minute > 0) break; // Stop at 18:00
-      const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-      slots.push(timeStr);
-    }
-  }
-  return slots;
+// Get today's date in YYYY-MM-DD format
+const getTodayDate = (): string => {
+  return new Date().toISOString().split('T')[0];
 };
-
-const timeSlots = generateTimeSlots();
 
 export function AppointmentForm({
   open,
@@ -92,7 +82,7 @@ export function AppointmentForm({
     defaultValues: {
       patient_id: patient?.id || 0,
       doctor_id: undefined,
-      appointment_date: '',
+      appointment_date: getTodayDate(),
       appointment_time: '',
       reason: '',
       status: 'Pending',
@@ -120,10 +110,16 @@ export function AppointmentForm({
         // Strip seconds from time if present (convert HH:mm:ss to HH:mm)
         const timeValue = appointment.appointment_time?.substring(0, 5) || '';
         
+        // Convert ISO date to YYYY-MM-DD format for input
+        let dateValue = appointment.appointment_date || '';
+        if (dateValue.includes('T')) {
+          dateValue = dateValue.split('T')[0];
+        }
+        
         reset({
           patient_id: appointment.patient_id,
           doctor_id: doctorId,
-          appointment_date: appointment.appointment_date,
+          appointment_date: dateValue,
           appointment_time: timeValue,
           reason: appointment.reason,
           status: appointment.status || 'Pending',
@@ -140,7 +136,7 @@ export function AppointmentForm({
         reset({
           patient_id: patientId,
           doctor_id: undefined,
-          appointment_date: '',
+          appointment_date: getTodayDate(),
           appointment_time: '',
           reason: '',
           status: 'Pending',
@@ -208,6 +204,14 @@ export function AppointmentForm({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Show appointment ID when editing */}
+        {appointment && (
+          <div className="bg-accent/50 rounded-lg p-3 mb-4">
+            <p className="text-sm text-muted-foreground">Appointment ID:</p>
+            <p className="font-medium">#{appointment.id || (appointment as any).appointment_id}</p>
+          </div>
+        )}
+
         {/* Show patient info if booking for specific patient */}
         {patient && !appointment && (
           <div className="bg-accent/50 rounded-lg p-3 mb-4">
@@ -267,24 +271,13 @@ export function AppointmentForm({
 
           {/* Time Selection */}
           <div className="space-y-2">
-            <Label>Time *</Label>
-            <Select
-              value={watch('appointment_time')}
-              onValueChange={(value) => setValue('appointment_time', value)}
-            >
-              <SelectTrigger
-                className={errors.appointment_time ? 'border-destructive' : ''}
-              >
-                <SelectValue placeholder="Select time" />
-              </SelectTrigger>
-              <SelectContent className="max-h-60">
-                {timeSlots.map((time) => (
-                  <SelectItem key={time} value={time}>
-                    {time}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="appointment_time">Time *</Label>
+            <Input
+              id="appointment_time"
+              type="time"
+              {...register('appointment_time')}
+              className={errors.appointment_time ? 'border-destructive' : ''}
+            />
             {errors.appointment_time && (
               <p className="text-xs text-destructive">
                 {errors.appointment_time.message}
