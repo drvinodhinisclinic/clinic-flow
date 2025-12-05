@@ -19,6 +19,7 @@ export interface Patient {
 export interface Appointment {
   id: number;
   patient_id: number;
+  doctor_id?: number;
   patient_name?: string;
   doctor_name?: string;
   appointment_date: string;
