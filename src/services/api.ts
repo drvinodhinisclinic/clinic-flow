@@ -103,7 +103,7 @@ export async function getAllDoctors(): Promise<Doctor[]> {
 
 // Get all appointments
 export async function getAllAppointments(): Promise<Appointment[]> {
-  return fetchApi<Appointment[]>('/appointments');
+  return fetchApi<Appointment[]>('/appointments/all');
 }
 
 // Get appointment by ID

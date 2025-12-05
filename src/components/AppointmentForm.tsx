@@ -52,7 +52,7 @@ const mockDoctors: Doctor[] = [
   { id: 4, name: 'Dr. James Brown' },
 ];
 
-const statuses = ['Scheduled', 'Completed', 'Cancelled', 'No Show'];
+const statuses = ['Pending', 'Confirmed', 'Cancelled', 'Completed'];
 
 // Generate 5-minute interval time slots from 9:00 AM to 6:00 PM
 const generateTimeSlots = (): string[] => {
@@ -95,7 +95,7 @@ export function AppointmentForm({
       appointment_date: '',
       appointment_time: '',
       reason: '',
-      status: 'Scheduled',
+      status: 'Pending',
     },
   });
 
@@ -110,14 +110,29 @@ export function AppointmentForm({
   useEffect(() => {
     if (open) {
       if (appointment) {
+        // Find matching doctor id from name if doctor_id not present
+        let doctorId = appointment.doctor_id;
+        if (!doctorId && appointment.doctor_name && doctors.length > 0) {
+          const matchedDoctor = doctors.find(d => d.name === appointment.doctor_name);
+          doctorId = matchedDoctor?.id;
+        }
+        
+        // Strip seconds from time if present (convert HH:mm:ss to HH:mm)
+        const timeValue = appointment.appointment_time?.substring(0, 5) || '';
+        
         reset({
           patient_id: appointment.patient_id,
-          doctor_id: undefined,
+          doctor_id: doctorId,
           appointment_date: appointment.appointment_date,
-          appointment_time: appointment.appointment_time,
+          appointment_time: timeValue,
           reason: appointment.reason,
-          status: appointment.status || 'Scheduled',
+          status: appointment.status || 'Pending',
         });
+        
+        // Set doctor_id after doctors are loaded
+        if (doctorId) {
+          setValue('doctor_id', doctorId, { shouldValidate: true });
+        }
       } else if (patient) {
         // Handle both 'id' and 'patient_id' from API response
         const patientId = patient.id || (patient as any).patient_id || 0;
@@ -128,11 +143,11 @@ export function AppointmentForm({
           appointment_date: '',
           appointment_time: '',
           reason: '',
-          status: 'Scheduled',
+          status: 'Pending',
         });
       }
     }
-  }, [open, appointment, patient, reset]);
+  }, [open, appointment, patient, doctors, reset, setValue]);
 
   const fetchDoctors = async () => {
     setLoadingDoctors(true);
