@@ -175,18 +175,21 @@ export default function Appointments() {
   const handleAppointmentSubmit = async (data: AppointmentFormData) => {
     if (!selectedAppointment) return;
 
+    const appointmentId = selectedAppointment.id || (selectedAppointment as any).appointment_id;
+    if (!appointmentId) {
+      toast.error('Invalid appointment ID');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await updateAppointment(selectedAppointment.id, data);
+      await updateAppointment(appointmentId, data);
       toast.success('Appointment updated successfully');
       setAppointmentFormOpen(false);
       setSelectedAppointment(null);
       fetchAppointments();
     } catch (error) {
-      // Demo mode - simulate success
-      toast.success('Appointment updated successfully');
-      setAppointmentFormOpen(false);
-      setSelectedAppointment(null);
+      toast.error('Failed to update appointment');
     } finally {
       setIsSubmitting(false);
     }
@@ -326,6 +329,7 @@ export default function Appointments() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-table-header">
+                    <TableHead>ID</TableHead>
                     <TableHead>Patient Name</TableHead>
                     <TableHead>Doctor</TableHead>
                     <TableHead>Date</TableHead>
@@ -337,7 +341,10 @@ export default function Appointments() {
                 </TableHeader>
                 <TableBody>
                   {paginatedAppointments.map((appointment) => (
-                    <TableRow key={appointment.id} className="table-row-interactive">
+                    <TableRow key={appointment.id || (appointment as any).appointment_id} className="table-row-interactive">
+                      <TableCell className="font-medium">
+                        #{appointment.id || (appointment as any).appointment_id}
+                      </TableCell>
                       <TableCell className="font-medium">
                         {appointment.patient_name || `Patient #${appointment.patient_id}`}
                       </TableCell>
