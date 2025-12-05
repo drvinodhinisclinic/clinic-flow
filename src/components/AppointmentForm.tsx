@@ -25,9 +25,9 @@ import {
 import { getAllDoctors } from '@/services/api';
 import { Loader2 } from 'lucide-react';
 
-// Validation schema for appointment form
+// Validation schema for appointment form (patient_id optional for edit mode)
 const appointmentSchema = z.object({
-  patient_id: z.number().min(1, 'Patient is required'),
+  patient_id: z.number().optional(),
   doctor_id: z.number({ required_error: 'Doctor is required', invalid_type_error: 'Doctor is required' }).min(1, 'Doctor is required'),
   appointment_date: z.string().min(1, 'Date is required'),
   appointment_time: z.string().min(1, 'Time is required'),
