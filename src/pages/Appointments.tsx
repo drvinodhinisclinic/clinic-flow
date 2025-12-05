@@ -199,18 +199,21 @@ export default function Appointments() {
   const handleDeleteAppointment = async () => {
     if (!appointmentToDelete) return;
 
+    const appointmentId = appointmentToDelete.id || (appointmentToDelete as any).appointment_id;
+    if (!appointmentId) {
+      toast.error('Invalid appointment ID');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await deleteAppointment(appointmentToDelete.id);
+      await deleteAppointment(appointmentId);
       toast.success('Appointment cancelled successfully');
       setDeleteDialogOpen(false);
       setAppointmentToDelete(null);
       fetchAppointments();
     } catch (error) {
-      // Demo mode - simulate success
-      toast.success('Appointment cancelled successfully');
-      setDeleteDialogOpen(false);
-      setAppointmentToDelete(null);
+      toast.error('Failed to cancel appointment');
     } finally {
       setIsSubmitting(false);
     }
