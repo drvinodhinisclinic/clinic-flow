@@ -8,14 +8,14 @@ interface StatusBadgeProps {
 export function StatusBadge({ status }: StatusBadgeProps) {
   const getStatusStyles = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'scheduled':
-        return 'bg-info/10 text-info border-info/20';
+      case 'pending':
+        return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
+      case 'confirmed':
+        return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
       case 'completed':
         return 'bg-success/10 text-success border-success/20';
       case 'cancelled':
         return 'bg-destructive/10 text-destructive border-destructive/20';
-      case 'no show':
-        return 'bg-warning/10 text-warning border-warning/20';
       default:
         return 'bg-muted text-muted-foreground border-border';
     }
